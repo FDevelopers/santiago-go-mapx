@@ -6,6 +6,7 @@ import {
   Polyline,
 } from "@react-google-maps/api";
 import axios from "axios";
+import mqtt from "mqtt";
 
 const libraries = ["places"];
 const mapContainerStyle = {
@@ -17,8 +18,20 @@ const center = {
   lng: -70.68447494396473, // default longitude
 };
 
+const protocol = "ws";
+const host = "maptest.ddns.net";
+const port = "8083";
+const path = "/mqtt";
+const clientId = `mqtt_${Math.random().toString(16).slice(3)}`;
+const topic = "mqtt/map";
+
+const connectUrl = `${protocol}://${host}:${port}${path}`;
+
 const App = () => {
+  let mytrucks = [];
+  const [trucks, setTrucks] = useState([]);
   const [rutas, setRutas] = useState();
+  const [client, setClient] = useState(null);
   const [lat, setLat] = useState(19.441907556432835);
   const [lgn, setLgn] = useState(-70.6815231746255);
   const { isLoaded, loadError } = useLoadScript({
@@ -26,7 +39,54 @@ const App = () => {
     libraries,
   });
 
+  const mqttConnect = () => {
+    setClient(
+      mqtt.connect(connectUrl, {
+        clientId,
+        clean: true,
+        connectTimeout: 4000,
+        username: "emqx",
+        password: "public",
+        reconnectPeriod: 1000,
+      })
+    );
+  };
+
+  const showTrucks = () => {
+    return trucks.map((item, index) => {
+      return (
+        <Marker position={{ lat: item.position.latitude, lng: item.position.longitude}} />
+      );
+    });
+  };
+
   useEffect(() => {
+    mqttConnect();
+  }, []);
+
+  useEffect(() => {
+    if (client) {
+      client.on("connect", (error) => {
+        if (error) {
+          console.log(error);
+        }
+
+        client.subscribe([topic], () => {
+          console.log(`Subscribe to topic '${topic}'`);
+        });
+      });
+      client.on("error", (err) => {
+        console.error("Connection error: ", err);
+        client.end();
+      });
+      client.on("reconnect", () => {});
+
+      client.on("message", (topic, message) => {
+        mytrucks.push(JSON.parse(message.toString()));
+        setTrucks(mytrucks);
+      });
+    }
+
     const getLocation = () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -55,7 +115,7 @@ const App = () => {
       });
 
     getLocation();
-  }, []);
+  }, [client]);
 
   if (loadError) {
     return <div>Error loading maps</div>;
@@ -72,6 +132,10 @@ const App = () => {
         center={center}
       >
         <Marker position={{ lat: lat, lng: lgn }} />
+
+        {trucks && showTrucks()}
+
+
         <Polyline
           path={rutas && rutas[0].coordinates}
           strokeColor="#0FC72E"
