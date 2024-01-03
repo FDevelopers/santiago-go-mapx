@@ -125,7 +125,7 @@ const App = () => {
       });
 
     getLocation();
-  }, [client]);
+  }, [client, trucks]);
 
   if (loadError) {
     return <div>Error loading maps</div>;
