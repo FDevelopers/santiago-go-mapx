@@ -42,12 +42,10 @@ const App = () => {
       } else {
         console.error("Geolocation is not supported by this browser.");
       }
-
-      getLocation();
     };
 
     axios
-      .get(`http://127.0.0.1:3001/api/maps/rutax`)
+      .get(`http://maptest.ddns.net:3001/api/maps/rutax`)
       .then((res) => {
         console.log(res.data[0].colorRutas);
         setRutas(res.data);
@@ -55,6 +53,8 @@ const App = () => {
       .catch((error) => {
         console.log(error);
       });
+
+    getLocation();
   }, []);
 
   if (loadError) {
