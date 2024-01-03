@@ -4,6 +4,7 @@ import {
   useLoadScript,
   Marker,
   Polyline,
+  InfoWindow,
 } from "@react-google-maps/api";
 import axios from "axios";
 import mqtt from "mqtt";
@@ -53,9 +54,17 @@ const App = () => {
   };
 
   const showTrucks = () => {
+    console.log(trucks)
     return trucks.map((item, index) => {
       return (
-        <Marker position={{ lat: item.position.latitude, lng: item.position.longitude}} />
+        <Marker
+          key={index}
+          position={{
+            lat: item.position.latitude,
+            lng: item.position.longitude,
+          }}
+        />
+
       );
     });
   };
@@ -82,6 +91,7 @@ const App = () => {
       client.on("reconnect", () => {});
 
       client.on("message", (topic, message) => {
+        console.log(message.toString())
         mytrucks.push(JSON.parse(message.toString()));
         setTrucks(mytrucks);
       });
@@ -131,10 +141,8 @@ const App = () => {
         zoom={18}
         center={center}
       >
-        <Marker position={{ lat: lat, lng: lgn }} />
 
         {trucks && showTrucks()}
-
 
         <Polyline
           path={rutas && rutas[0].coordinates}
